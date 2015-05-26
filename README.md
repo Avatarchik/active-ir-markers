@@ -1,22 +1,30 @@
-# active-ir-markers
+# AKTĪVIE INFRASARKANIE MARĶIERI PAPLAŠINĀTAJAI UN VIRTUĀLAI REALITĀTEI
 Active infrared marker system using Leap Motion, Oculus Rift DK2, Unity and Arduino &amp; IR LEDs
 
 Saturs:
 
 ardunio-source - Arduino programmu kods
+
 master-thesis - Maģistra darba latex kods
+
 unity-prototype - Unity / Leap Motion testa programmas kods
 
 ---
 
 RĪGAS TEHNISKĀ UNIVERSITĀTE
+
 Datorzinātnes un informācijas tehnoloģijas fakultāte
+
 Lietišķo datorsistēmu institūts 
+
 Mākslīgā intelekta un sistēmu inženierijas katedra
 
 Ēvalds URTĀNS
+
 Akadēmiskā maģistru studiju programma „Intelektuālās robotizētās sistēmas”
+
 (stud. apl. nr. 131RDM003)
+
 
 AKTĪVIE INFRASARKANIE MARĶIERI PAPLAŠINĀTAJAI UN VIRTUĀLAI REALITĀTEI
 
