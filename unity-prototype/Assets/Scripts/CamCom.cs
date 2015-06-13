@@ -95,7 +95,7 @@ public class CamCom : MonoBehaviour {
     private const bool DEBUG_LOG_ID_BLOB_THERESHOLD = false;
     private const bool DEBUG_SAVE_ALL_FRAMES_STRIDE = true; //pressing key "R"
     private const bool DEBUG_SAVE_ALL_FRAMES_3_SEK = false;
-    private const bool DEBUG_LOG_LEVEL_COUNT = false;
+    private const bool DEBUG_LOG_LEVEL_COUNT = true;
     private const bool DEBUG_LOG_LEVEL_DECODED = false;
     private const bool DEBUG_LOG_LEVEL_ENCODED = false;    
     private const bool DEBUG_LOG_TIME_TO_CAPTURE = false;
@@ -178,9 +178,9 @@ public class CamCom : MonoBehaviour {
 
     
     public static int MARKER_LENGTH = 5;
-    private static byte[] ledPong1 = new byte[5] { 1, 0, 1, 0, 0 }; //red 10100 101001010010100
-    private static byte[] ledPong2 = new byte[5] { 1, 0, 1, 0, 1 }; //green 10101 101011010110101
-    private static byte[] ledPong3 = new byte[5] { 1, 1, 1, 0, 0 };  //blue 11100 1110011100
+    private static byte[] ledPong2 = new byte[5] { 1, 0, 1, 0, 0 }; //red 10100 101001010010100
+    private static byte[] ledPong3 = new byte[5] { 1, 0, 1, 0, 1 }; //green 10101 101011010110101
+    private static byte[] ledPong1 = new byte[5] { 1, 1, 1, 0, 0 };  //blue 11100 1110011100
     //*/
 
     /*

@@ -124,8 +124,8 @@ public class LeapImageRetriever : MonoBehaviour
 
     private float lasImageFlush = 0f;
 
-    private Dictionary<int, GameObject> markers = new Dictionary<int, GameObject>();
-    private Dictionary<int, Vector3> markersPositions = new Dictionary<int, Vector3>();
+    private Dictionary<int, MarkerFiltered> _markers = new Dictionary<int, MarkerFiltered>();
+        
 
     public const bool DEBUG_SHOW_HOUSE = false;
     public const bool DEBUG_SHOW_RAYS = false;
@@ -612,6 +612,11 @@ public class LeapImageRetriever : MonoBehaviour
 
   void Update()
   {
+    if(Input.GetKey(KeyCode.Escape))
+    {
+        Application.Quit();
+    }
+
     if (controller_ == null)
       return;
 
@@ -667,7 +672,7 @@ public class LeapImageRetriever : MonoBehaviour
             DEBUG_SHOW_MARKERS = !DEBUG_SHOW_MARKERS;
             if(!DEBUG_SHOW_MARKERS)
             {
-                markers.Clear();
+                _markers.Clear();
             }
         }
 
@@ -701,15 +706,6 @@ public class LeapImageRetriever : MonoBehaviour
             Destroy(line);
         }
 
-        GameObject[] list = GameObject.FindGameObjectsWithTag("markers");
-        foreach (GameObject marker in list)
-        {
-            if (!markers.ContainsValue(marker))
-            {
-                Destroy(marker);
-            }
-        }
-
         /*
         OVRPose pose = OVRManager.tracker.GetPose(0d); // OVRManager.display.GetCameraPose(0d);
         //GameObject.Find("LeftEyeAnchor").transform.TransformPoint(pose.position);
@@ -721,10 +717,7 @@ public class LeapImageRetriever : MonoBehaviour
         //drawSphere(pose.position, Color.red);
          */
 
-        if(CamCom.SAMPLE_TYPE == SampleType.PingPong)
-        {
-            markersPositions.Clear();
-        }
+        Dictionary<int, Vector3> rectifiedPositions = new Dictionary<int, Vector3>();
 
         bool foundBlob = false;
 
@@ -785,174 +778,224 @@ public class LeapImageRetriever : MonoBehaviour
 
                     Vector3 postionMarker = GameObject.Find("LeftEyeAnchor").transform.TransformPoint(posGizmo);
 
-                    if (DEBUG_SHOW_MARKERS && !DEBUG_SHOW_MARKERS_ONLY_ALL)
-                    {
-                        GameObject sphere = drawSphere(postionMarker, colorsPatterns[blobLeft.ID]);
-                        markers[blobLeft.ID] = sphere;
-                    }
 
-                    markersPositions[blobLeft.ID] = postionMarker;
-
-
-                    List<Vector3> correctPositions = new List<Vector3>();
-                    Vector3 totalCurPos = new Vector3();
-
-                    if (markersPositions.Count >= 2)
-                    {
-                        //Filter positions
-                        //Kalman kalman = 
-
-
-                        bool isCorrectTriangle = true;
-                        foreach (Vector3 pos1 in markersPositions.Values)
-                        {
-                            foreach (Vector3 pos2 in markersPositions.Values)
-                            {
-                                if (pos1 != pos2)
-                                {
-                                    float dist = (pos1 - pos2).sqrMagnitude;
-                                    if ((CamCom.SAMPLE_TYPE == SampleType.PingPong && (dist >= MAX_DISTANCE_BETWEEN_POINTS_PONG || dist < MIN_DISTANCE_BETWEEN_POINTS_PONG)) ||
-                                         (CamCom.SAMPLE_TYPE == SampleType.TriangleHouse && dist >= MAX_DISTANCE_BETWEEN_POINTS)
-                                        )
-                                    {
-                                        isCorrectTriangle = false;
-
-
-                                       // Debug.Log(String.Format("dist: {0} {1} {2}", (markersPositions[i] - markersPositions[j]).sqrMagnitude, i, j));
-
-                                        break;
-                                    }
-                                    else
-                                    {
-                                        correctPositions.Add(pos1);
-                                        totalCurPos += pos1;
-                                        // Debug.Log(String.Format("dist: {0}", (markersPositions[0] - markersPositions[i]).sqrMagnitude));
-                                    }
-                                    // Debug.Log(String.Format("dist: {0}", (markersPositions[0] - markersPositions[i]).sqrMagnitude ));
-                                }
-                            }
-                        }
-
-                        if (CamCom.SAMPLE_TYPE == SampleType.Begemot)
-                        {
-
-                            if (correctPositions.Count > 0)
-                            {
-                                //Position of demo house
-                                totalCurPos /= (float)correctPositions.Count;
-
-                                // if (totalCurPos.sqrMagnitude > 0.5)
-                                {
-                                    _begemot.transform.position = Vector3.Lerp(_begemot.transform.position, totalCurPos, Time.deltaTime * 20f);
-                                }
-
-                            }
-
-                        }
-                        else if (CamCom.SAMPLE_TYPE == SampleType.PingPong)
-                        {
-
-
-                            if (correctPositions.Count > 0)
-                            {
-                                //Position of demo house
-                                totalCurPos /= (float)correctPositions.Count;
-
-                                // if (totalCurPos.sqrMagnitude > 0.5)
-                                {
-                                    _demoPongRacket.transform.position = Vector3.Lerp(_demoPongRacket.transform.position, totalCurPos, Time.deltaTime * 10f);
-                                }
-
-                            }
-
-                            if (isCorrectTriangle && markersPositions.Count == 3)
-                            {
-                                if (DEBUG_SHOW_MARKERS && DEBUG_SHOW_MARKERS_ONLY_ALL)
-                                {
-                                    GameObject sphere = drawSphere(postionMarker, colorsPatterns[blobLeft.ID]);
-                                    markers[blobLeft.ID] = sphere;
-                                }
-
-
-                                //if (totalCurPos.sqrMagnitude > 0.5)
-                                {
-                                    //Debug.Log(String.Format("{0}", middlePos.sqrMagnitude));
-
-                                    Vector3 up = Vector3.Cross(
-                                           (markersPositions[2] - markersPositions[0]).normalized,
-                                           (markersPositions[1] - markersPositions[0]).normalized);
-                                    Vector3 heading = ((markersPositions[1] - markersPositions[0]) + (markersPositions[2] - markersPositions[0])).normalized;
-                                    Vector3 pitch = Vector3.Cross(up, heading);
-
-                                    // float angleZ = Mathf.Atan2(heading.x, heading.z) * Mathf.Rad2Deg +90;
-
-                                    /*
-                                    Debug.DrawRay(middlePos, up, Color.red, 30f);
-                                    Debug.DrawRay(middlePos, heading, Color.green, 30f);
-                                    Debug.DrawRay(middlePos, pitch, Color.blue, 30f);
-                                    */
-
-
-                                    //Debug.Log(String.Format("{0}", angleZ));
-                                    if (heading.sqrMagnitude > 0 && up.sqrMagnitude > 0)
-                                    {
-                                        _demoPongRacket.transform.rotation = Quaternion.Lerp(_demoPongRacket.transform.rotation, Quaternion.LookRotation(-up, -heading), Time.deltaTime * 30f);
-                                    }
-                                    //_demoPongRacket.transform.Rotate(up, angleZ);
-                                    // _demoPongRacket.transform.rotation = Quaternion.Euler(0f, 0f, Mathf.LerpAngle(_demoPongRacket.transform.rotation.eulerAngles.z, angleZ, Time.deltaTime * 2f));
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (isCorrectTriangle)
-                            {
-                                if (DEBUG_SHOW_MARKERS && DEBUG_SHOW_MARKERS_ONLY_ALL)
-                                {
-                                    GameObject sphere = drawSphere(postionMarker, colorsPatterns[blobLeft.ID]);
-                                    markers[blobLeft.ID] = sphere;
-                                }
-
-                                _textInfo = "Success, transformation detected";
-
-                                if (DEBUG_SHOW_HOUSE && markersPositions.Count == 3)
-                                {
-                                    //Position of demo house
-                                    Vector3 middlePos = markersPositions[0] + markersPositions[1] + markersPositions[2];
-                                    middlePos /= 3f;
-
-                                    _demoHouse.transform.position = Vector3.Lerp(_demoHouse.transform.position, middlePos, Time.deltaTime * 10f);
-
-                                    Vector3 up = Vector3.Cross(
-                                        (markersPositions[2] - markersPositions[0]).normalized,
-                                        (markersPositions[1] - markersPositions[0]).normalized);
-                                    Vector3 heading = ((markersPositions[1] - markersPositions[0]) + (markersPositions[2] - markersPositions[0])).normalized;
-                                    Vector3 pitch = Vector3.Cross(up, heading);
-
-                                    float angleY = Mathf.Atan2(heading.x, heading.z) * Mathf.Rad2Deg - 40f;
-
-
-                                    _demoHouse.transform.rotation = Quaternion.Euler(0f, Mathf.Lerp(angleY, _demoHouse.transform.rotation.y, Time.deltaTime * 2f), 0f);
-
-
-                                    //Debug.Log(String.Format("{0}", angleY));
-
-
-                                    /*
-                                    Debug.DrawRay(middlePos, up, Color.red, 30f);
-                                    Debug.DrawRay(middlePos, heading, Color.green, 30f);
-                                    Debug.DrawRay(middlePos, pitch, Color.blue, 30f);
-                                    //*/
-
-                                    _demoHouse.SetActive(true);
-                                }
-                            }
-                        }
-                    }
+                    rectifiedPositions[blobLeft.ID] = postionMarker;
                     
                 }
             }
         } //foreach itteration
+
+
+        //Filter positions much futher away from 
+        Dictionary<int, float> deviances = new Dictionary<int, float>();
+        foreach (KeyValuePair<int, Vector3> eachRectified in rectifiedPositions)
+        {
+            deviances[eachRectified.Key] = (_demoPongRacket.transform.position - eachRectified.Value).sqrMagnitude;
+        }
+        foreach (KeyValuePair<int, float> eachDevianceTop in deviances)
+        {
+            List<int> validPos = new List<int>();
+            foreach (KeyValuePair<int, float> eachDeviance in deviances)
+            {
+                float min = Math.Min(deviances[eachDevianceTop.Key], eachDeviance.Value);
+                float max = Math.Max(deviances[eachDevianceTop.Key], eachDeviance.Value);
+                if (max == 0 || min / max > 0.9f)
+                {
+                    validPos.Add(eachDeviance.Key);
+                }
+            }
+
+            if(validPos.Count >= 2)
+            {
+                foreach (KeyValuePair<int, float> eachDeviance in deviances)
+                {
+                    if(!validPos.Contains(eachDeviance.Key))
+                    {
+                        rectifiedPositions.Remove(eachDeviance.Key);
+                    }
+                }
+                break;
+            }
+        }
+
+        foreach(KeyValuePair<int, Vector3> eachRectified in rectifiedPositions)
+        {
+            MarkerFiltered marker = null;
+            if (_markers.ContainsKey(eachRectified.Key))
+            {
+                marker = _markers[eachRectified.Key];
+            }
+            else
+            {
+                marker = _markers[eachRectified.Key] = new MarkerFiltered();
+
+                if (DEBUG_SHOW_MARKERS)
+                {
+                    GameObject sphere = drawSphere(eachRectified.Value, colorsPatterns[eachRectified.Key]);
+                    marker.GameObjectMarker = sphere;
+                }
+            }
+
+            MarkerFiltered[] foos = new MarkerFiltered[_markers.Values.Count];
+            _markers.Values.CopyTo(foos, 0);
+
+            marker.UpdatePosition(eachRectified.Value, foos);
+
+            List<Vector3> correctPositions = new List<Vector3>();
+            Vector3 totalCurPos = new Vector3();
+
+            if (_markers.Count >= 3)
+            {
+                //Filter positions
+                //Kalman kalman = 
+
+                List<Vector3> markersPositions = new List<Vector3>();
+                foreach (MarkerFiltered each in _markers.Values)
+                {
+                    markersPositions.Add(each.Positon);
+                }
+
+                bool isCorrectTriangle = true;
+                foreach (Vector3 pos1 in markersPositions)
+                {
+                    foreach (Vector3 pos2 in markersPositions)
+                    {
+                        if (pos1 != pos2)
+                        {
+                            float dist = (pos1 - pos2).sqrMagnitude;
+                            if ((CamCom.SAMPLE_TYPE == SampleType.PingPong && (dist >= MAX_DISTANCE_BETWEEN_POINTS_PONG || dist < MIN_DISTANCE_BETWEEN_POINTS_PONG)) ||
+                                 (CamCom.SAMPLE_TYPE == SampleType.TriangleHouse && dist >= MAX_DISTANCE_BETWEEN_POINTS)
+                                )
+                            {
+                                isCorrectTriangle = false;
+
+
+                                // Debug.Log(String.Format("dist: {0} {1} {2}", (markersPositions[i] - markersPositions[j]).sqrMagnitude, i, j));
+
+                                break;
+                            }
+                            else
+                            {
+                                correctPositions.Add(pos1);
+                                totalCurPos += pos1;
+                                // Debug.Log(String.Format("dist: {0}", (markersPositions[0] - markersPositions[i]).sqrMagnitude));
+                            }
+                            // Debug.Log(String.Format("dist: {0}", (markersPositions[0] - markersPositions[i]).sqrMagnitude ));
+                        }
+                    }
+                }
+
+                if (CamCom.SAMPLE_TYPE == SampleType.Begemot)
+                {
+
+                    if (correctPositions.Count > 0)
+                    {
+                        //Position of demo house
+                        totalCurPos /= (float)correctPositions.Count;
+
+                        // if (totalCurPos.sqrMagnitude > 0.5)
+                        {
+                            _begemot.transform.position = Vector3.Lerp(_begemot.transform.position, totalCurPos, Time.deltaTime * 20f);
+                        }
+
+                    }
+
+                }
+                else if (CamCom.SAMPLE_TYPE == SampleType.PingPong)
+                {
+
+
+                    if (correctPositions.Count > 0)
+                    {
+                        //Position of demo house
+                        totalCurPos /= (float)correctPositions.Count;
+
+                        // if (totalCurPos.sqrMagnitude > 0.5)
+                        {
+                            //_demoPongRacket.transform.position = totalCurPos;
+                            _demoPongRacket.transform.position = Vector3.Lerp(_demoPongRacket.transform.position, totalCurPos, Time.deltaTime * 10f);
+                        }
+
+                    }
+
+                    if (isCorrectTriangle && 
+                        rectifiedPositions.Count == 3)
+                    {
+
+                        //if (totalCurPos.sqrMagnitude > 0.5)
+                        {
+                            //Debug.Log(String.Format("{0}", middlePos.sqrMagnitude));
+
+                            Vector3 up = Vector3.Cross(
+                                   (markersPositions[0] - markersPositions[1]).normalized,
+                                   (markersPositions[0] - markersPositions[2]).normalized
+                                  );
+                            Vector3 heading = ((markersPositions[2] - markersPositions[0]) + (markersPositions[1] - markersPositions[0])).normalized;
+                            Vector3 pitch = Vector3.Cross(up, heading);
+
+                            // float angleZ = Mathf.Atan2(heading.x, heading.z) * Mathf.Rad2Deg +90;
+
+                            /*
+                            Debug.DrawRay(middlePos, up, Color.red, 30f);
+                            Debug.DrawRay(middlePos, heading, Color.green, 30f);
+                            Debug.DrawRay(middlePos, pitch, Color.blue, 30f);
+                            */
+
+
+                            //Debug.Log(String.Format("{0}", angleZ));
+                            if (heading.sqrMagnitude > 0 && up.sqrMagnitude > 0)
+                            {
+                                //_demoPongRacket.transform.rotation = Quaternion.LookRotation(-up, -heading);
+
+                                _demoPongRacket.transform.rotation = Quaternion.Lerp(_demoPongRacket.transform.rotation, Quaternion.LookRotation(-up, -heading), Time.deltaTime * 30f);
+                            }
+                            //_demoPongRacket.transform.Rotate(up, angleZ);
+                            // _demoPongRacket.transform.rotation = Quaternion.Euler(0f, 0f, Mathf.LerpAngle(_demoPongRacket.transform.rotation.eulerAngles.z, angleZ, Time.deltaTime * 2f));
+                        }
+                    }
+                }
+                else
+                {
+                    if (isCorrectTriangle)
+                    {
+
+                        _textInfo = "Success, transformation detected";
+
+                        if (DEBUG_SHOW_HOUSE && markersPositions.Count == 3)
+                        {
+                            //Position of demo house
+                            Vector3 middlePos = markersPositions[0] + markersPositions[1] + markersPositions[2];
+                            middlePos /= 3f;
+
+                            _demoHouse.transform.position = Vector3.Lerp(_demoHouse.transform.position, middlePos, Time.deltaTime * 10f);
+
+                            Vector3 up = Vector3.Cross(
+                                (markersPositions[2] - markersPositions[0]).normalized,
+                                (markersPositions[1] - markersPositions[0]).normalized);
+                            Vector3 heading = ((markersPositions[1] - markersPositions[0]) + (markersPositions[2] - markersPositions[0])).normalized;
+                            Vector3 pitch = Vector3.Cross(up, heading);
+
+                            float angleY = Mathf.Atan2(heading.x, heading.z) * Mathf.Rad2Deg - 40f;
+
+
+                            _demoHouse.transform.rotation = Quaternion.Euler(0f, Mathf.Lerp(angleY, _demoHouse.transform.rotation.y, Time.deltaTime * 2f), 0f);
+
+
+                            //Debug.Log(String.Format("{0}", angleY));
+
+
+                            /*
+                            Debug.DrawRay(middlePos, up, Color.red, 30f);
+                            Debug.DrawRay(middlePos, heading, Color.green, 30f);
+                            Debug.DrawRay(middlePos, pitch, Color.blue, 30f);
+                            //*/
+
+                            _demoHouse.SetActive(true);
+                        }
+                    }
+                }
+            }
+        }
         
         if(!foundBlob)
         {

@@ -115,6 +115,8 @@
      <Compile Include="Assets\OVR\Scripts\Util\OVRVisionGuide.cs" />
      <Compile Include="Assets\Scripts\CamBlob.cs" />
      <Compile Include="Assets\Scripts\CamCom.cs" />
+     <Compile Include="Assets\Scripts\MarkerFiltered.cs" />
+     <Compile Include="Assets\Scripts\Matrix3x3.cs" />
      <Compile Include="Assets\Scripts\PongBallScript.cs" />
      <Compile Include="Assets\Scripts\PongController.cs" />
      <Compile Include="Assets\Scripts\TextOutline.cs" />
